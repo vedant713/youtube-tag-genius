@@ -8,7 +8,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetchTags(request.query)
             .then(tags => {
                 console.log('Tags fetched successfully:', tags);
-                sendResponse({ tags: tags });
+                // Add analytics to each tag
+                const tagsWithAnalytics = tags.map(tag => ({
+                    text: tag,
+                    analytics: analyzeTag(tag)
+                }));
+                sendResponse({ tags: tagsWithAnalytics });
             })
             .catch(error => {
                 console.error('Error fetching tags:', error);
@@ -110,4 +115,43 @@ async function fetchTags(query) {
         console.error('Fetch error:', error);
         throw error;
     }
+}
+
+// Analyze tag to estimate metrics
+function analyzeTag(tag) {
+    const tagLower = tag.toLowerCase();
+    const wordCount = tag.split(' ').length;
+    const length = tag.length;
+
+    // Search Volume Estimation (10-100 scale)
+    // Shorter tags = higher volume (more general)
+    // Single words = very high volume
+    let volume = 100;
+    if (wordCount === 1 && length <= 10) {
+        volume = 90 + Math.floor(Math.random() * 10); // 90-100
+    } else if (wordCount <= 2 && length <= 20) {
+        volume = 70 + Math.floor(Math.random() * 20); // 70-90
+    } else if (wordCount <= 3 && length <= 30) {
+        volume = 40 + Math.floor(Math.random() * 30); // 40-70
+    } else {
+        volume = 10 + Math.floor(Math.random() * 30); // 10-40
+    }
+
+    // Competition Level (low, medium, high)
+    // Longer, more specific tags = lower competition
+    let competition = 'high';
+    if (wordCount >= 4) {
+        competition = 'low';
+    } else if (wordCount === 3 || length > 25) {
+        competition = 'medium';
+    }
+
+    // Trending indicator (tags with certain patterns)
+    const trending = tagLower.includes('2026') ||
+        tagLower.includes('2025') ||
+        tagLower.includes('latest') ||
+        tagLower.includes('new') ||
+        tagLower.includes('trending');
+
+    return { volume, competition, trending };
 }

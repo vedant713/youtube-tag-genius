@@ -97,18 +97,60 @@ document.addEventListener('DOMContentLoaded', () => {
     tagsContainer.innerHTML = '<div class="chips fade-in"></div>';
     const chipsContainer = tagsContainer.querySelector('.chips');
 
-    tags.forEach(tag => {
+    tags.forEach(tagData => {
+      // Handle both old and new format
+      const tag = typeof tagData === 'string' ? tagData : tagData.text;
+      const analytics = tagData.analytics || null;
+
       const chip = document.createElement('div');
       chip.className = 'chip';
 
       // Add visual category based on tag length
       if (tag.length <= 15) {
-        chip.classList.add('short'); // Short, focused keywords
+        chip.classList.add('short');
       } else if (tag.length <= 30) {
-        chip.classList.add('medium'); // Medium-length phrases
+        chip.classList.add('medium');
       }
 
-      chip.textContent = tag;
+      // Create tag structure with analytics
+      const tagText = document.createElement('span');
+      tagText.className = 'tag-text';
+      tagText.textContent = tag;
+      chip.appendChild(tagText);
+
+      // Add analytics badges if available
+      if (analytics) {
+        const badges = document.createElement('div');
+        badges.className = 'tag-analytics';
+
+        // Trending indicator
+        if (analytics.trending) {
+          const trendBadge = document.createElement('span');
+          trendBadge.className = 'badge trending';
+          trendBadge.textContent = '🔥';
+          trendBadge.title = 'Trending';
+          badges.appendChild(trendBadge);
+        }
+
+        // Competition indicator
+        const compBadge = document.createElement('span');
+        compBadge.className = `badge competition ${analytics.competition}`;
+        compBadge.textContent = analytics.competition[0].toUpperCase();
+        compBadge.title = `Competition: ${analytics.competition}`;
+        badges.appendChild(compBadge);
+
+        // Volume indicator (show as bar)
+        const volBadge = document.createElement('span');
+        volBadge.className = 'badge volume';
+        const volumeLevel = analytics.volume > 70 ? 'high' : analytics.volume > 40 ? 'med' : 'low';
+        volBadge.className = `badge volume ${volumeLevel}`;
+        volBadge.textContent = analytics.volume;
+        volBadge.title = `Search Volume: ${analytics.volume}/100`;
+        badges.appendChild(volBadge);
+
+        chip.appendChild(badges);
+      }
+
       chip.addEventListener('click', () => {
         chip.classList.toggle('selected');
       });
@@ -124,6 +166,38 @@ document.addEventListener('DOMContentLoaded', () => {
   keywordInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       generateBtn.click();
+    }
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+A: Select all tags
+    if (e.ctrlKey && e.key === 'a') {
+      const chips = document.querySelectorAll('.chip');
+      if (chips.length > 0) {
+        e.preventDefault();
+        chips.forEach(chip => chip.classList.add('selected'));
+      }
+    }
+
+    // Ctrl+C: Copy selected (or all) tags with visual feedback
+    if (e.ctrlKey && e.key === 'c') {
+      const selectedChips = document.querySelectorAll('.chip.selected');
+      const allChips = document.querySelectorAll('.chip');
+
+      if (allChips.length > 0) {
+        e.preventDefault();
+        const chipsToCopy = selectedChips.length > 0 ? selectedChips : allChips;
+        const tags = Array.from(chipsToCopy).map(chip => chip.textContent);
+
+        navigator.clipboard.writeText(tags.join(', ')).then(() => {
+          // Visual feedback
+          tagsContainer.style.outline = '2px solid #4caf50';
+          setTimeout(() => {
+            tagsContainer.style.outline = 'none';
+          }, 300);
+        });
+      }
     }
   });
 });
