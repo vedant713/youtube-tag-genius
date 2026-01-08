@@ -66,12 +66,35 @@ document.addEventListener('DOMContentLoaded', () => {
       // Instead of strict filtering, we'll only filter if tags contain non-English
       // and user selected English-only, or vice versa
       if (lang === 'en') {
-        // Keep only tags with primarily English/Latin characters
+        // Keep only tags with primarily English/Latin characters AND no regional indicators
         filtered = filtered.filter(t => {
-          const text = typeof t === 'string' ? t : t.text;
+          const text = (typeof t === 'string' ? t : t.text).toLowerCase();
+
           // Allow if at least 80% is English characters
           const englishChars = text.match(/[a-zA-Z0-9\s]/g) || [];
-          return englishChars.length / text.length >= 0.8;
+          const isEnglishChars = englishChars.length / text.length >= 0.8;
+
+          // List of regional indicators to exclude (Indian subcontinent + other regions)
+          const regionalKeywords = [
+            // Languages
+            'hindi', 'urdu', 'tamil', 'telugu', 'kannada', 'malayalam', 'bengali', 'marathi',
+            'gujarati', 'punjabi', 'nepali', 'sinhala',
+            // Common Indian YouTube creators
+            'techno gamerz', 'triggered insaan', 'carryminati', 'bb ki vines',
+            'ashish chanchlani', 'amit bhadana', 'dynamo gaming', 'total gaming',
+            'live insaan', 'mythpat', 'scout', 'mortal', 'carry', 'dynamo',
+            // Regional terms
+            'in hindi', 'in tamil', 'in telugu', 'in urdu', 'in kannada',
+            'hindi mein', 'bollywood', 'desi',
+            // Common Hindi/Urdu words
+            'kaise', 'kya', 'hai', 'aur', 'ka', 'ki', 'ko', 'mein', 'se',
+            'kare', 'karen', 'karein', 'karo'
+          ];
+
+          // Check if tag contains any regional keywords
+          const hasRegionalContent = regionalKeywords.some(keyword => text.includes(keyword));
+
+          return isEnglishChars && !hasRegionalContent;
         });
       } else if (lang === 'hi') {
         // Keep tags that contain some Devanagari OR are transliterations
