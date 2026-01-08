@@ -14,8 +14,13 @@
 <body>
   <div class="container">
     <header>
-      <h1>YT Tag Gen</h1>
-      <p>Boost your video discovery</p>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h1>YT Tag Gen</h1>
+          <p>Boost your video discovery</p>
+        </div>
+        <button id="openSettings" class="btn-icon" title="API Settings">⚙️</button>
+      </div>
       <div class="shortcuts-hint">
         <kbd>Ctrl+A</kbd> Select all • <kbd>Ctrl+C</kbd> Copy • <kbd>Esc</kbd> Close
       </div>
@@ -82,6 +87,8 @@
         </svg>
         Generate Tags
       </button>
+
+      <div id="apiStatus" class="api-status hidden"></div>
 
       <div class="tags-container" id="tagsContainer">
         <div class="tags-placeholder">
@@ -172,6 +179,7 @@
     </div>
 
   </div>
+  <script src="youtube-api.js"></script>
   <script src="popup.js"></script>
 </body>
 

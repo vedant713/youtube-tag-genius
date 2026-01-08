@@ -1,24 +1,35 @@
 console.log('Background service worker loaded');
 
+// Import YouTube API service
+importScripts('youtube-api.js');
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Received message:', request);
 
     if (request.action === 'fetchTags') {
         console.log('Fetching tags for query:', request.query);
-        fetchTags(request.query)
-            .then(tags => {
+
+        // Make this async since analyzeTag is now async
+        (async () => {
+            try {
+                const tags = await fetchTags(request.query);
                 console.log('Tags fetched successfully:', tags);
-                // Add analytics to each tag
-                const tagsWithAnalytics = tags.map(tag => ({
-                    text: tag,
-                    analytics: analyzeTag(tag)
-                }));
+
+                // Add analytics to each tag (now async)
+                const tagsWithAnalytics = await Promise.all(
+                    tags.map(async (tag) => ({
+                        text: tag,
+                        analytics: await analyzeTag(tag)
+                    }))
+                );
+
                 sendResponse({ tags: tagsWithAnalytics });
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error fetching tags:', error);
                 sendResponse({ error: error.message });
-            });
+            }
+        })();
+
         return true; // Will respond asynchronously
     } else if (request.action === 'openPopup') {
         // Store the current query for popup to use
@@ -118,7 +129,32 @@ async function fetchTags(query) {
 }
 
 // Analyze tag to estimate metrics
-function analyzeTag(tag) {
+async function analyzeTag(tag) {
+    // Try to use YouTube API for real analytics if available
+    try {
+        // Import YouTube API (loaded in background context)
+        if (typeof YouTubeAPI !== 'undefined') {
+            const ytApi = new YouTubeAPI();
+            const apiKey = await ytApi.getApiKey();
+
+            if (apiKey && ytApi.hasQuota(100)) {
+                console.log(`🎯 Using YouTube API to analyze tag: "${tag}"`);
+                const realAnalytics = await ytApi.analyzeTagCompetition(tag);
+
+                if (realAnalytics) {
+                    console.log(`✅ Real analytics for "${tag}":`, realAnalytics);
+                    return realAnalytics;
+                }
+            } else if (apiKey) {
+                console.log(`⚠️ API quota exceeded for "${tag}", using heuristics`);
+            }
+        }
+    } catch (error) {
+        console.warn(`❌ YouTube API analysis failed for "${tag}":`, error);
+    }
+
+    // Fallback to heuristic estimates
+    console.log(`ℹ️ Using heuristic estimates for "${tag}"`);
     const tagLower = tag.toLowerCase();
     const wordCount = tag.split(' ').length;
     const length = tag.length;

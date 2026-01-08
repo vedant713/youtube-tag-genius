@@ -20,8 +20,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const analyzeBtn = document.getElementById('analyzeBtn');
   const analyzerResults = document.getElementById('analyzerResults');
 
+  // Settings button
+  const openSettingsBtn = document.getElementById('openSettings');
+
+  // API status indicator
+  const apiStatus = document.getElementById('apiStatus');
+
+  // Initialize YouTube API
+  const ytApi = new YouTubeAPI();
+
   // Store generated tags for filtering
   let currentTags = [];
+
+  // Open settings page
+  openSettingsBtn.addEventListener('click', () => {
+    chrome.runtime.openOptionsPage();
+  });
 
   // Tab switching
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -147,6 +161,27 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set({ lastKeyword: keyword });
 
     tagsContainer.innerHTML = '<div class="tags-placeholder">Generating...</div>';
+
+    // Check and display API status
+    const apiKey = await ytApi.getApiKey();
+    const hasQuota = ytApi.hasQuota(100); // Approximate check
+
+    if (apiKey && hasQuota) {
+      apiStatus.textContent = '✅ Using YouTube Data API - Real analytics';
+      apiStatus.className = 'api-status using-api';
+      apiStatus.classList.remove('hidden');
+      console.log('🎯 API MODE: Will use YouTube Data API for analytics');
+    } else if (apiKey && !hasQuota) {
+      apiStatus.textContent = '⚠️ API quota exceeded - Using estimates';
+      apiStatus.className = 'api-status using-heuristics';
+      apiStatus.classList.remove('hidden');
+      console.log('⚠️ FALLBACK MODE: Quota exceeded, using heuristics');
+    } else {
+      apiStatus.textContent = 'ℹ️ Using heuristic estimates (configure API key for real data)';
+      apiStatus.className = 'api-status using-heuristics';
+      apiStatus.classList.remove('hidden');
+      console.log('ℹ️ HEURISTIC MODE: No API key, using estimates');
+    }
 
     console.log('Sending message to background script...');
     chrome.runtime.sendMessage({ action: 'fetchTags', query: keyword }, (response) => {
@@ -383,7 +418,48 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function fetchVideoData(videoId) {
-    // Use YouTube oEmbed API
+    try {
+      // Try to use YouTube API first if configured
+      const apiKey = await ytApi.getApiKey();
+
+      if (apiKey) {
+        console.log('Using YouTube Data API...');
+        const video = await ytApi.getVideoDetails(videoId);
+
+        if (video) {
+          const channelId = video.snippet.channelId;
+          let subscriberCount = null;
+
+          // Get channel info for subscriber count
+          try {
+            const channel = await ytApi.getChannelInfo(channelId);
+            if (channel && channel.statistics) {
+              subscriberCount = parseInt(channel.statistics.subscriberCount);
+            }
+          } catch (error) {
+            console.warn('Could not fetch channel info:', error);
+          }
+
+          return {
+            title: video.snippet.title,
+            author: video.snippet.channelTitle,
+            tags: video.snippet.tags || [],
+            views: parseInt(video.statistics.viewCount || 0),
+            likes: parseInt(video.statistics.likeCount || 0),
+            comments: parseInt(video.statistics.commentCount || 0),
+            publishedAt: video.snippet.publishedAt,
+            subscriberCount: subscriberCount,
+            thumbnail: video.snippet.thumbnails.medium?.url,
+            usingRealData: true
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('YouTube API failed, falling back to oEmbed:', error);
+    }
+
+    // Fallback to oEmbed API (original method)
+    console.log('Using oEmbed fallback...');
     const oEmbedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
     const response = await fetch(oEmbedUrl);
 
@@ -401,14 +477,26 @@ document.addEventListener('DOMContentLoaded', () => {
       title: data.title,
       author: data.author_name,
       tags: mockTags,
-      thumbnail: data.thumbnail_url
+      thumbnail: data.thumbnail_url,
+      usingRealData: false
     };
   }
 
   function displayVideoAnalysis(videoData) {
     // Update video info
     document.getElementById('videoTitle').textContent = videoData.title;
-    document.getElementById('videoStats').textContent = `By ${videoData.author}`;
+
+    // Build stats string with real data if available
+    let statsText = `By ${videoData.author}`;
+    if (videoData.usingRealData) {
+      if (videoData.views) statsText += ` • ${formatNumber(videoData.views)} views`;
+      if (videoData.likes) statsText += ` • ${formatNumber(videoData.likes)} likes`;
+      if (videoData.subscriberCount) statsText += ` • ${formatNumber(videoData.subscriberCount)} subscribers`;
+      statsText += ' • ✅ Real YouTube Data';
+    } else {
+      statsText += ' • ⚠️ Limited data (configure API key for full details)';
+    }
+    document.getElementById('videoStats').textContent = statsText;
 
     // Display video tags
     const videoTagsContainer = document.getElementById('videoTags');
@@ -479,5 +567,15 @@ document.addEventListener('DOMContentLoaded', () => {
       li.textContent = insight;
       insightsList.appendChild(li);
     });
+  }
+
+  // Helper function to format numbers (e.g., 1000000 -> 1M)
+  function formatNumber(num) {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
   }
 });

@@ -10,7 +10,8 @@
   ],
   "host_permissions": [
     "*://www.youtube.com/*",
-    "*://suggestqueries.google.com/*"
+    "*://suggestqueries.google.com/*",
+    "*://www.googleapis.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -20,6 +21,7 @@
       "128": "icons/icon128.png"
     }
   },
+  "options_page": "api-config.html",
   "background": {
     "service_worker": "background.js"
   },
