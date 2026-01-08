@@ -156,7 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const chipElements = document.querySelectorAll('.chip');
     let tagsToSearch = [];
     chipElements.forEach(chip => {
-      tagsToSearch.push(chip.innerText);
+      // Get only the tag text, not the analytics badges
+      const tagText = chip.querySelector('.tag-text');
+      tagsToSearch.push(tagText ? tagText.textContent : chip.textContent);
     });
 
     if (tagsToSearch.length === 0) return;
@@ -177,7 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   copyBtn.addEventListener('click', () => {
     const chipElements = document.querySelectorAll('.chip');
-    const tags = Array.from(chipElements).map(chip => chip.innerText);
+    const tags = Array.from(chipElements).map(chip => {
+      // Get only the tag text, not the analytics badges
+      const tagText = chip.querySelector('.tag-text');
+      return tagText ? tagText.textContent : chip.textContent;
+    });
     if (tags.length === 0) return;
 
     navigator.clipboard.writeText(tags.join(', ')).then(() => {
@@ -291,7 +297,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (allChips.length > 0) {
         e.preventDefault();
         const chipsToCopy = selectedChips.length > 0 ? selectedChips : allChips;
-        const tags = Array.from(chipsToCopy).map(chip => chip.textContent);
+        const tags = Array.from(chipsToCopy).map(chip => {
+          // Get only the tag text, not the analytics badges
+          const tagText = chip.querySelector('.tag-text');
+          return tagText ? tagText.textContent : chip.textContent;
+        });
 
         navigator.clipboard.writeText(tags.join(', ')).then(() => {
           // Visual feedback
