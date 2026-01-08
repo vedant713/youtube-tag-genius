@@ -4,7 +4,7 @@
 
 A premium Chrome/Edge extension that generates highly relevant YouTube search tags to help you discover better content faster. No more manual searching - let the algorithm work for you!
 
-![Extension Preview](https://raw.githubusercontent.com/YOUR_USERNAME/youtube-tag-genius/main/icons/icon128.png)
+![Extension Preview](https://raw.githubusercontent.com/vedant713/youtube-tag-genius/main/icons/icon128.png)
 
 ## ✨ Features
 
@@ -32,7 +32,7 @@ A premium Chrome/Edge extension that generates highly relevant YouTube search ta
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/youtube-tag-genius.git
+   git clone https://github.com/vedant713/youtube-tag-genius.git
    cd youtube-tag-genius
    ```
 
@@ -125,7 +125,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📧 Support
 
 Found a bug? Have a suggestion? 
-- 🐛 [Open an issue](https://github.com/YOUR_USERNAME/youtube-tag-genius/issues)
+- 🐛 [Open an issue](https://github.com/vedant713/youtube-tag-genius/issues)
 - ⭐ Star this repo if you find it useful!
 
 ---
